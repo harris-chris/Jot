@@ -5,7 +5,7 @@ AWS does not provide native support for Julia, so functions must be put into con
 3. [Build the image](#build-the-image) locally.
 Your container is then ready for testing and deployment. The provided bash scripts enable you to
 4. (Optionally) [test the container locally](#testing-the-container-locally) before pushing to AWS, then
-5. [Defining the function on AWS Lambda](#defining-the-aws-lambda-function) - push the container to AWS ECR, and create a lambda function which uses it.
+5. [Define the function on AWS Lambda](#defining-the-aws-lambda-function) - push the container to AWS ECR, and create a lambda function which uses it.
 
 ### config.json
 This is the config file for the Lambda image. The fields are as follows:
