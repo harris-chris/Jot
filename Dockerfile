@@ -1,14 +1,17 @@
-ARG FUNCTION_DIR="/function"
+FROM julia:1.6
 
-FROM julia:1.5
+RUN mkdir -p /var/runtime
+RUN mkdir -p /var/julia
+ENV JULIA_DEPOT_PATH=/var/julia
+WORKDIR /var/runtime
 
-ARG FUNCTION_DIR="/function"
-RUN mkdir -p ${FUNCTION_DIR}
-COPY app/* ${FUNCTION_DIR}
+COPY julia-function-runtime/* ./
+COPY image_build/startup.jl $JULIA_DEPOT_PATH
+COPY image_build/dependencies.jl ./
+COPY image_build/bootstrap ./
+COPY config.json ./
+COPY aws-lambda-rie /usr/local/bin/aws-lambda-rie
 
-RUN apt-get update && apt-get install -y curl nmap
-RUN julia -e "using Pkg; Pkg.add([\"HTTP\"])"
+RUN /usr/local/julia/bin/julia --startup-file=no dependencies.jl
 
-ENV PATH=/root/.julia/conda/3/bin:$PATH
-
-ENTRYPOINT ["julia", "/function/runtime.jl"]
+ENTRYPOINT ["/var/runtime/bootstrap"]

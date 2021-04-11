@@ -1,0 +1,12 @@
+{
+  "AWSAccountId": "111111111111",
+  "AWSRegion": "ap-northeast-1",
+  "ImageName": "julia-lambda",
+  "ImageTag": "latest",
+  "FunctionName": "test-function",
+  "Role": "lambda-test-user",
+  "Timeout": 20,
+  "MemorySize": 600,
+  "Dependencies": []
+}
+
