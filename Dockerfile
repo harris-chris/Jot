@@ -6,6 +6,7 @@ ENV JULIA_DEPOT_PATH=/var/julia
 WORKDIR /var/runtime
 
 COPY julia-function-runtime/* ./
+COPY function.jl ./
 COPY image_build/startup.jl $JULIA_DEPOT_PATH
 COPY image_build/dependencies.jl ./
 COPY image_build/bootstrap ./

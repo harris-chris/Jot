@@ -1,21 +1,5 @@
 using HTTP, JSON
-
-Base.@kwdef struct Invocation
-  body::Any
-  aws_request_id::String
-  deadline_ms::Int
-  invoked_function_arn::String
-  trace_id::String
-end
-
-Base.@kwdef struct InvocationResponse
-  response::Any
-end
-
-Base.@kwdef struct InvocationError
-  errorMessage::String
-  errorType::String
-end
+include("function.jl")
 
 function main(host)
   endpoint = "http://$(host)/2018-06-01/runtime/invocation/"
