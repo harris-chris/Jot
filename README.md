@@ -1,7 +1,7 @@
 ## Julia AWS Lambda Image
 AWS does not provide native support for Julia, so functions must be put into containers which implement AWS's [Lambda API](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html), and uploaded to AWS ECR. This repo aims to reduce this to a simple process:
 1. [Enter your AWS details](#configjson) (and some parameters for the Lambda function) in the `config.json` file
-2. [Add your function code](#adding-function-code) to the `react_to_invocation` function in `julia-function-runtime/runtime.jl`
+2. [Add your function code](#adding-function-code) to the `react_to_invocation` function in `function.jl`
 3. [Build the image](#build-the-image) locally.
 Your container is then ready for testing and deployment. The provided bash scripts enable you to
 4. (Optionally) [test the container locally](#testing-the-container-locally) before pushing to AWS, then
@@ -22,7 +22,7 @@ This is the config file for the Lambda image. The fields are as follows:
 ### Adding Function Code
 The AWS Lambda API permits the container to return two values from a function call - a response, or an error. These are both JSONs, of no defined format. 
 
-The only place you will need to add your function code is in the `react_to_invocation` function, `in julia-function-runtime/runtime.jl`. This function can return either an `InvocationResponse` (a return value), or an `InvocationError` (an error value). The `InvocationResponse` struct has a single attribute, `response::String`, to which the responding function should pass a JSON-compatible string. The code in `main()` will handle the return value appropriately, depending on whether it is a response or an error. The `Invocation` object contains the full details for the invocation, but it is likely that you will only be interested in the `Invocation.body` attribute, which contains a JSON of the original function argument.
+The only place you will need to add your function code is in the `react_to_invocation` function, in `function.jl`. This function can return either an `InvocationResponse` (a return value), or an `InvocationError` (an error value). The `InvocationResponse` struct has a single attribute, `response::String`, to which the responding function should pass a JSON-compatible string. The remaining code (in `julia-function-runtime/runtime.jl`) will handle the return value appropriately, depending on whether it is a response or an error. The `Invocation` object contains the full details for the invocation, but it is likely that you will only be interested in the `Invocation.body` attribute, which contains a JSON of the original function argument.
 
 The example code currently in the `react_to_invocation` function does the following:
 - Looks at the body (the original argument) of the invocation.

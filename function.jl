@@ -15,8 +15,8 @@ Base.@kwdef struct InvocationError
   errorType::String
 end
 
-# Your code goes here
 function react_to_invocation(inv::Invocation)::Union{InvocationResponse, InvocationError}
+  # Your code goes here
   try
     what_should_we_return = inv.body["What should I return?"]
     if what_should_we_return == "Success"
