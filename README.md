@@ -9,10 +9,12 @@ This will build your docker container. It also adds [two directories](#where-do-
 
 ### config.json
 This is the config file for the Lambda image. It is divided into three parts (aws, image, and lambda_function, for your aws details, the docker image definition, and the AWS Lambda function respectively. The fields are as follows:
+
 **aws**
 - `account_id` is your 12-digit AWS ID. [See below for how to find this](#finding-your-user-details).
 - `region` is your AWS region code. [See below for how to find this](#finding-your-user-details).
 - `role` is the AWS role that will execute the lambda function. You will need to create this if you do not already have one. [Instructions to do so below](#creating-a-lambda-user-role).
+
 **image**
 - `name` is your chosen name for your Julia image. It will have the AWS Account ID, the region and other data prepended to it when built. The name has no functional effect.
 - `tag` is the tag for your image. If you are not using version numbers, just use `latest`.
@@ -20,6 +22,7 @@ This is the config file for the Lambda image. It is divided into three parts (aw
 - `dependencies` is a list of Julia packages to add to the image. This should just be a list of strings that will be used with Pkg.add() - for example, `["DataFrames"]` for DataFrames.jl, or `["DataFrames", "Distributions"]`. These will be added to the image during the image build and precompiled.
 - `runtime_path` is the path that will be created on the docker image to store the files used at runtime, including the julia file containing your function.
 - `julia_depot_path` is the path that will be created on the docker image to act as the Julia depot path.
+
 **lambda_function**
 - `name` is the name for your lambda function. The function will be re-built each time the `push_image_to_ecr_and_create_lambda_function.sh` script is run. Note that this begins by **erasing any existing functions in AWS Lambda with the same name**.
 - `timeout` is the period that Lambda will wait for the container to respond before timing out. Lambda's default value (3 seconds) is too small for a cold-started Julia container that has not been pre-packaged. 20 seconds should be sufficient.
