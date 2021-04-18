@@ -1,5 +1,5 @@
 ## Julia AWS Lambda Image
-AWS does not provide native support for Julia, so functions must be put into containers which implement AWS's [Lambda API](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html), and uploaded to AWS ECR. This repo aims to reduce this to a simple process:
+AWS does not provide native support for Julia, so functions must be put into containers which implement AWS's [Lambda API](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html), and uploaded to AWS ECR. This repo aims to reduce this to a simple, customizable and transparent process:
 1. [Enter your configuration](#configjson) for your AWS account and the function to be created in the `config.json` file
 2. [Add your function code](#adding-function-code) to the `react_to_invocation` function in `function/function.jl`
 3. [Build the image](#build-the-image) locally, using the `build.jl` script: `julia build.jl buildimage`.
