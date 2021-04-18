@@ -1,0 +1,21 @@
+{
+  "AWS": {
+    "aws_account_id": "111111111111",
+    "aws_region": "ap-northeast-1",
+    "role": "lambda-test-user"
+  },
+  "Image": {
+    "image_name": "julia-lambda",
+    "image_tag": "latest",
+    "image_base": "1.6.0",
+    "dependencies": [],
+    "runtime-path": "/var/runtime",
+    "julia-depot-path": "/var/julia"
+  },
+  "LambdaFunction": {
+    "function_name": "test-function",
+    "timeout": 20,
+    "memory_size": 600
+  }
+}
+
