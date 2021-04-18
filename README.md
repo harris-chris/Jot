@@ -48,12 +48,12 @@ When ready, run `bash ./push_image_and_create_function.sh` to run a script that 
 ### Building the files, or building the files and the image
 The `build.jl` script comes with multiple commands, amongst which are `buildfilesonly` and `buildimage`. These two offer different routes for building the docker image:
 - `buildimage` builds the docker image in full for you
-- `buildfilesonly` adds the files to be added to the image, and a Dockerfile, to the `image` folder, but does not build the image. This allows you to edit any of these files prior to building. When ready to build, run `bash ./image/build_image.sh` to invoke the `image/build_image.sh` script, which will build the image locally. If you edit any files in the `image` directory, note that running either `build.jl buildimage` or `build.jl buildfilesonly` [will overwrite your changes](#where-do-the-scripts-and-images-directories-come-from) from the `template` folder. If you would like to make persistent changes to any of these files, you should edit the `template` folder.
+- `buildfilesonly` adds the files to be added to the image, and a Dockerfile, to the `image` folder, but does not build the image. This allows you to edit any of these files prior to building. When ready to build, run `bash ./image/build_image.sh` to invoke the `image/build_image.sh` script, which will build the image locally. If you edit any files in the `image` directory, note that running either `build.jl buildimage` or `build.jl buildfilesonly` [will overwrite your changes](#where-do-the-scripts-and-image-directories-come-from) from the `template` folder. If you would like to make persistent changes to any of these files, you should edit the `template` folder.
 After going through either of these processes, you should see the image in the output of `docker image ls`. The image name will contain your AWS Account number as well as the image name and tag defined in `config.json`.
 
 ### The `image` directory
 The `./image` directory contains two things: 
-- the Dockerfile for the image, and a `build_image.sh` script to create the image using the Dockerfile. The Dockerfile is created entirely programmatically and does not exist in the [template folder](#where-do-the-scripts-and-images-directories-come-from).
+- the Dockerfile for the image, and a `build_image.sh` script to create the image using the Dockerfile. The Dockerfile is created entirely programmatically and does not exist in the [template folder](#where-do-the-scripts-and-image-directories-come-from).
 - a representation of the directory structure that will be added to the docker image. This includes, at minimum, the directory for the function runtime files, and the directory for the julia depot files. By default, these will be `image/var/runtime` and `image/var/julia` respectively. This representation is taken from the `template/image` directory.
 
 ### The `scripts` directory
