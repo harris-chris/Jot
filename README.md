@@ -59,7 +59,7 @@ The `./scripts` folder is created the first time you run a build, and contains b
 The `template` folder contains templates for both the `scripts` and `image` folder that are generated in the project root folder. Each time the `build.jl` script is invoked with a `build...` command like `buildimage` or `buildfilesonly`, the following process takes place:
 - the existing `scripts` and `image` in the root folder are deleted.
 - they are then replaced by their versions in the `template` folder.
-- all script files in the `template` folder (identified by their shebang) have their placeholders for configuration variables replaced - for example, the `run_image_locally.sh` script looks like this in the `template/scripts` folder:
+- all script files in the `template` folder (identified by having a shebang) have their placeholders for configuration variables replaced - for example, the `run_image_locally.sh` script looks like this in the `template/scripts` folder:
 ```
 docker run \
   -p 9000:8080 \
