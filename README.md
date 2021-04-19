@@ -5,7 +5,7 @@ AWS does not provide native support for Julia, so functions must be put into con
 3. [Build the image](#build-the-image) locally, using the `build.jl` script: `julia build.jl buildimage`.
 This will build your docker container. It also adds [two directories](#where-do-the-scripts-and-image-directories-come-from): `image` (containing the Dockerfile, and [the files that will be added to the Docker image](#the-image-directory), and `scripts`, containing [bash scripts that will be usful for managing the image](#the-scripts-directory). Amongst these are scripts to:
 4. (Optionally) [test the container locally](#testing-the-container-locally) with a sample JSON, eg `bash scripts/test_image_locally.sh '{"Key1":"Value1"}'`
-5. [Define the function on AWS Lambda](#defining-the-aws-lambda-function) - `bash scripts/login_to_aws.sh`, if you are not currently logged in, then `bash scripts/push_image_to_ecr_and_create_lambda_function.sh` to push the docker image to Amazon ECR and create the associated function in AWS Lambda.
+5. [Define the function on AWS Lambda](#defining-the-aws-lambda-function) - `bash scripts/login_to_ecr.sh`, if you are not currently logged in, then `bash scripts/push_image_to_ecr_and_create_lambda_function.sh` to push the docker image to Amazon ECR and create the associated function in AWS Lambda.
 
 ### config.json
 This is the config file for the Lambda image. It is divided into three parts (aws, image, and lambda_function, for your aws details, the docker image definition, and the AWS Lambda function respectively. The fields are as follows:
