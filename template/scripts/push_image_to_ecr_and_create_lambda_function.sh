@@ -1,4 +1,9 @@
 #!/bin/bash
+# Create the ECR repository, if it doesn't already exists
+aws ecr create-repository \
+  --repository-name $(lambda_function.name) \
+  --image-scanning-configuration scanOnPush=true \
+  --region $(aws.region)
 # Push the image to ECR
 docker push $(image.full_image_string)
 # Delete lambda function if it already exists

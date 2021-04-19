@@ -35,13 +35,6 @@ The only place you will need to add your function code is in the `react_to_invoc
 
 Note that AWS does not specify the format of its errors, and the fields of `InvocationError` that has been pre-defined in `function/function.jl` are arbitrary and may be changed without issue.
 
-The example code currently in the `react_to_invocation` function does the following:
-- Looks at the body (the original argument) of the invocation.
-- Assumes that the body is a `Dict` and tries to get the value for the `"3 * 3?"` key. 
-- If the key exists, and the value for the key is 9, it returns a single-word response - `"Indeed."`.
-- If the key exists, but has any other value <value>, it returns `"3 * 3 != <value>"`.
-- If the key does not exist at all, an `InvocationError` is returned.
-
 ### Testing the container locally
 AWS provides an RIE (Runtime Interface Emulator) to allow you to test Lambda images locally before pushing them to AWS. This runs the container in a proxy of the environment that will be used on AWS servers. By running the `run_image_locally.sh` script, the container will be started locally (on port 9000). It will run non-detached, so to test it, open up another terminal window, then run the `test_image_locally.sh` script. You should see "SUCCESS" returned as a value, and be able to see debug information on the original terminal window.
 
@@ -119,6 +112,6 @@ Click through the 'Tags' screen, to the 'Review' screen. Enter a role name and t
 ![Add name and then create](./.readme-images/give_role_name.png)
 
 ### Troubleshooting
-- **Segmentation Fault**: if the allocated memory for the Lambda function (defined in the `MemorySize` field of the `config.json`) is too low, Julia will not fail gracefully and will throw a Segmentation Fault. The default Lambda memory size (100mb) will cause this to occur.
+- **Getting a Segmentation Fault while running in AWS**: if the allocated memory for the Lambda function (defined in the `MemorySize` field of the `config.json`) is too low, Julia will not fail gracefully and will throw a Segmentation Fault. The default Lambda memory size (100mb) will cause this to occur.
 
 Any problems, please log them as an issue on github!

@@ -1,3 +1,5 @@
+using JSON
+
 Base.@kwdef struct Invocation
   body::Any
   aws_request_id::String
@@ -7,24 +9,42 @@ Base.@kwdef struct Invocation
 end
 
 Base.@kwdef struct InvocationResponse
-  response::Any
+  response::String
 end
 
 Base.@kwdef struct InvocationError
-  errorMessage::String
   errorType::String
+  errorMessage::String
+end
+
+function InvocationError(e::Exception)::InvocationError
+  e_type = string(typeof(e))
+  if hasproperty(e, :msg)
+    e_message = e.msg
+  else
+    e_message = "Error"
+  end
+  InvocationError(e_type, e_message)
 end
 
 function react_to_invocation(inv::Invocation)::Union{InvocationResponse, InvocationError}
-  # Your code goes here
+  # Your code goes here - example below!
   try
-    the_answer = inv.body["3 * 3?"]
-    if the_answer == 9
-      return InvocationResponse("Indeed.")
-    else
-      return InvocationResponse("3 * 3 != $the_answer")
+    num_a = inv.body["a"]
+    num_b = inv.body["b"]
+    op = inv.body["operation"]
+    response = nothing
+    if op == "+"
+      response = num_a + num_b
+    elseif op == "-"
+      response = num_a - num_b
+    end
+    if isnothing(response)
+      return InvocationError("Error", "Unable to execute $num_a $op $num_b")
+    else 
+      return InvocationResponse(json(response)) # Note the response must be a JSON
     end
   catch e
-    return InvocationError("Key not found", "KeyError")
+    return InvocationError(e)
   end
 end
