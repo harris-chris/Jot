@@ -1,8 +1,5 @@
 # IMPORTS
-import Pkg
-Pkg.add("ArgParse")
-Pkg.add("JSON")
-
+import SimpleContainerGenerator
 using ArgParse, JSON
 
 # EXCEPTIONS
@@ -263,6 +260,10 @@ function dockerfile_dependencies_and_precompile(config::Config)::String
   """
   RUN julia --startup-file=no -e "using Pkg; Pkg.add([$deps]); Pkg.precompile();"
   """
+end
+
+function build_packaged_dockerfile(config::Config)
+
 end
 
 function build_standard_dockerfile(config::Config)

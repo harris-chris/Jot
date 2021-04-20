@@ -2,7 +2,7 @@
 AWS does not provide native support for Julia, so functions must be put into containers which implement AWS's [Lambda API](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html), and uploaded to AWS ECR. This repo aims to reduce this to a simple, customizable and transparent process:
 1. [Enter your configuration](#configjson) for your AWS account and the function to be created in the `config.json` file
 2. [Add your function code](#adding-function-code) to the `react_to_invocation` function in `function/function.jl`
-3. [Build the image](#build-the-image) locally, using the `build.jl` script: `julia build.jl buildimage`.
+3. [Build the image](#build-the-image) locally, using the `build` executable: `./build buildimage`.
 This will build your docker container. It also adds [two directories](#where-do-the-scripts-and-image-directories-come-from): `image` (containing the Dockerfile, and [the files that will be added to the Docker image](#the-image-directory), and `scripts`, containing [bash scripts that will be usful for managing the image](#the-scripts-directory). Amongst these are scripts to:
 4. (Optionally) [test the container locally](#testing-the-container-locally) with a sample JSON, eg `bash scripts/test_image_locally.sh '{"Key1":"Value1"}'`
 5. [Define the function on AWS Lambda](#defining-the-aws-lambda-function) - `bash scripts/login_to_ecr.sh`, if you are not currently logged in, then `bash scripts/push_image_to_ecr_and_create_lambda_function.sh` to push the docker image to Amazon ECR and create the associated function in AWS Lambda.
@@ -42,9 +42,9 @@ AWS provides an RIE (Runtime Interface Emulator) to allow you to test Lambda ima
 When ready, run `bash ./push_image_and_create_function.sh` to run a script that will push the image to AWS Elastic Container Registry, and then create a Lambda function based on that image. You can log into AWS and go to the Lambda console to observe the function and test it.
 
 ### Building the files, or building the files and the image
-The `build.jl` script comes with multiple commands, amongst which are `buildfilesonly` and `buildimage`. These two offer different routes for building the docker image:
+The `/build` executable comes with multiple commands, amongst which are `buildfilesonly` and `buildimage`. These two offer different routes for building the docker image:
 - `buildimage` builds the docker image in full for you
-- `buildfilesonly` adds the files to be added to the image, and a Dockerfile, to the `image` folder, but does not build the image. This allows you to edit any of these files prior to building. When ready to build, run `bash ./image/build_image.sh` to invoke the `image/build_image.sh` script, which will build the image locally. If you edit any files in the `image` directory, note that running either `build.jl buildimage` or `build.jl buildfilesonly` [will overwrite your changes](#where-do-the-scripts-and-image-directories-come-from) from the `template` folder. If you would like to make persistent changes to any of these files, you should edit the `template` folder.
+- `buildfilesonly` adds the files to be added to the image, and a Dockerfile, to the `image` folder, but does not build the image. This allows you to edit any of these files prior to building. When ready to build, run `bash ./image/build_image.sh` to invoke the `image/build_image.sh` script, which will build the image locally. If you edit any files in the `image` directory, note that running either `./build buildimage` or `./build buildfilesonly` [will overwrite your changes](#where-do-the-scripts-and-image-directories-come-from) from the `template` folder. If you would like to make persistent changes to any of these files, you should edit the `template` folder.
 After going through either of these processes, you should see the image in the output of `docker image ls`. The image name will contain your AWS Account number as well as the image name and tag defined in `config.json`.
 
 ### The `image` directory
@@ -56,7 +56,7 @@ The `./image` directory contains two things:
 The `./scripts` folder is created the first time you run a build, and contains bash scripts that are useful for working with the build. Their names are fairly self-explanatory.
 
 ### Where do the `scripts` and `image` directories come from?
-The `template` folder contains templates for both the `scripts` and `image` folder that are generated in the project root folder. Each time the `build.jl` script is invoked with a `build...` command like `buildimage` or `buildfilesonly`, the following process takes place:
+The `template` folder contains templates for both the `scripts` and `image` folder that are generated in the project root folder. Each time the `./build` executable is invoked with a `build...` command like `buildimage` or `buildfilesonly`, the following process takes place:
 - the existing `scripts` and `image` in the root folder are deleted.
 - they are then replaced by their versions in the `template` folder.
 - all script files in the `template` folder (identified by having a shebang) have their placeholders for configuration variables replaced - for example, the `run_image_locally.sh` script looks like this in the `template/scripts` folder:
