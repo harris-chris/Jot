@@ -1,0 +1,10 @@
+name = "julia-for-aws-lambda"
+uuid = "02b43b1c-039b-4e9b-9b8a-e28905cb0fc4"
+authors = ["Chris Harris chrisharriscjh@gmail.com"]
+version = "1.1.0"
+license = "mit"
+
+[deps]
+ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
