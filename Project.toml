@@ -1,7 +1,8 @@
 name = "julia-for-aws-lambda"
 uuid = "02b43b1c-039b-4e9b-9b8a-e28905cb0fc4"
 authors = ["Chris Harris chrisharriscjh@gmail.com"]
-version = "1.0.0"
+version = "1.1.0"
+license = "mit"
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
