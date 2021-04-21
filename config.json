@@ -10,11 +10,12 @@
     "base": "1.6.0",
     "dependencies": [],
     "runtime_path": "/var/runtime",
-    "julia_depot_path": "/var/julia"
+    "julia_depot_path": "/var/julia",
+    "julia_cpu_target": "x86-64"
   },
   "lambda_function": {
     "name": "test-function",
-    "timeout": 20,
+    "timeout": 30,
     "memory_size": 600
   }
 }

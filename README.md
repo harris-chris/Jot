@@ -2,13 +2,13 @@
 AWS does not provide native support for Julia, so functions must be put into containers which implement AWS's [Lambda API](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html), and uploaded to AWS ECR. This repo aims to reduce this to a simple, customizable and transparent process:
 1. [Enter your configuration](#configjson) for your AWS account and the function to be created in the `config.json` file
 2. [Add your function code](#adding-function-code) to the `react_to_invocation` function in `function/function.jl`
-3. [Build the image](#build-the-image) locally, using the `build` executable: `./build buildimage`.
+3. [Build the image](#build-the-image) locally: `./jot buildimage`.
 This will build your docker container. It also adds [two directories](#where-do-the-scripts-and-image-directories-come-from): `image` (containing the Dockerfile, and [the files that will be added to the Docker image](#the-image-directory), and `scripts`, containing [bash scripts that will be usful for managing the image](#the-scripts-directory). Amongst these are scripts to:
 4. (Optionally) [test the container locally](#testing-the-container-locally) with a sample JSON, eg `bash scripts/test_image_locally.sh '{"Key1":"Value1"}'`
 5. [Define the function on AWS Lambda](#defining-the-aws-lambda-function) - `bash scripts/login_to_ecr.sh`, if you are not currently logged in, then `bash scripts/push_image_to_ecr_and_create_lambda_function.sh` to push the docker image to Amazon ECR and create the associated function in AWS Lambda.
 
 ### config.json
-This is the config file for the Lambda image. It is divided into three parts (aws, image, and lambda_function, for your aws details, the docker image definition, and the AWS Lambda function respectively. The fields are as follows:
+This is the config file for the Lambda image. It is divided into three parts (aws, image, and lambda_function, for your aws details, the docker image definition, and the AWS Lambda function respectively. Most of these fields have sensible defaults and can be left as they are. The fields are as follows:
 
 **aws**
 - `account_id` is your 12-digit AWS ID. [See below for how to find this](#finding-your-user-details).
@@ -22,6 +22,7 @@ This is the config file for the Lambda image. It is divided into three parts (aw
 - `dependencies` is a list of Julia packages to add to the image. This should just be a list of strings that will be used with Pkg.add() - for example, `["DataFrames"]` for DataFrames.jl, or `["DataFrames", "Distributions"]`. These will be added to the image during the image build and precompiled.
 - `runtime_path` is the path that will be created on the docker image to store the files used at runtime, including the julia file containing your function.
 - `julia_depot_path` is the path that will be created on the docker image to act as the Julia depot path.
+- `julia_cpu_target` is the JULIA_CPU_TARGET variable that will be used when compiling the docker image. If you change this, note that if it is incompatible with the hardware being used by AWS Lambda, the function may not work.
 
 **lambda_function**
 - `name` is the name for your lambda function. The function will be re-built each time the `push_image_to_ecr_and_create_lambda_function.sh` script is run. Note that this begins by **erasing any existing functions in AWS Lambda with the same name**.
@@ -42,10 +43,12 @@ AWS provides an RIE (Runtime Interface Emulator) to allow you to test Lambda ima
 When ready, run `bash ./push_image_and_create_function.sh` to run a script that will push the image to AWS Elastic Container Registry, and then create a Lambda function based on that image. You can log into AWS and go to the Lambda console to observe the function and test it.
 
 ### Building the files, or building the files and the image
-The `/build` executable comes with multiple commands, amongst which are `buildfilesonly` and `buildimage`. These two offer different routes for building the docker image:
+The `./jot` executable comes with multiple commands, amongst which are `buildfilesonly` and `buildimage`. These two offer different routes for building the docker image:
 - `buildimage` builds the docker image in full for you
-- `buildfilesonly` adds the files to be added to the image, and a Dockerfile, to the `image` folder, but does not build the image. This allows you to edit any of these files prior to building. When ready to build, run `bash ./image/build_image.sh` to invoke the `image/build_image.sh` script, which will build the image locally. If you edit any files in the `image` directory, note that running either `./build buildimage` or `./build buildfilesonly` [will overwrite your changes](#where-do-the-scripts-and-image-directories-come-from) from the `template` folder. If you would like to make persistent changes to any of these files, you should edit the `template` folder.
+- `buildfilesonly` adds the files to be added to the image, and a Dockerfile, to the `image` folder, but does not build the image. This allows you to edit any of these files prior to building. When ready to build, run `bash ./image/build_image.sh` to invoke the `image/build_image.sh` script, which will build the image locally. If you edit any files in the `image` directory, note that running either `./jot buildimage` or `./jot buildfilesonly` [will overwrite your changes](#where-do-the-scripts-and-image-directories-come-from) from the `template` folder. If you would like to make persistent changes to any of these files, you should edit the `template` folder.
 After going through either of these processes, you should see the image in the output of `docker image ls`. The image name will contain your AWS Account number as well as the image name and tag defined in `config.json`.
+
+Another important option is the `--packaged` command-line argument. An image built with `--packaged` uses [PackageCompiler.jl](https://github.com/JuliaLang/PackageCompiler.jl) to create a custom system image for the Lambda runtime and for your function. This will increase image build times, but decrease Lambda function run-times. It is therefore recommended for production, but not for testing. More details on how to optimize an image [here](#how-to-reduce-function-runtimes).
 
 ### The `image` directory
 The `./image` directory contains two things: 
@@ -56,7 +59,7 @@ The `./image` directory contains two things:
 The `./scripts` folder is created the first time you run a build, and contains bash scripts that are useful for working with the build. Their names are fairly self-explanatory.
 
 ### Where do the `scripts` and `image` directories come from?
-The `template` folder contains templates for both the `scripts` and `image` folder that are generated in the project root folder. Each time the `./build` executable is invoked with a `build...` command like `buildimage` or `buildfilesonly`, the following process takes place:
+The `template` folder contains templates for both the `scripts` and `image` folder that are generated in the project root folder. Each time the `./jot` executable is invoked with a `build...` command like `buildimage` or `buildfilesonly`, the following process takes place:
 - the existing `scripts` and `image` in the root folder are deleted.
 - they are then replaced by their versions in the `template` folder.
 - all script files in the `template` folder (identified by having a shebang) have their placeholders for configuration variables replaced - for example, the `run_image_locally.sh` script looks like this in the `template/scripts` folder:
@@ -75,6 +78,9 @@ docker run \
 - finally, the lambda function itself is copied to the runtime folder - defined in `config.json` but by default `./image/var/runtime`, from `./function`.
 
 If you would like to make persistent changes to the scripts, or the files that are ultimately included in the docker image, you should make them in the `template` folder, in which case they will be included in future builds created from this folder.
+
+### How to reduce function run-times
+When your AWS Lambda function is invoked, your container may be active or (if it has not been used for several minutes) inactive. If inactive, this is referred to as a cold start. A cold start is undesirable for all Lambda run-times, but perhaps moreso for Julia because there is a short delay while Julia initiates. To mitigate this, the --packaged option is provided. If this is used, then [PackageCompiler.jl](https://github.com/JuliaLang/PackageCompiler.jl) will be used to build a system image - this is a pre-constructed definition of what the Julia session containing your runtime will look like. To build this system image, it is necessary to define an 'example run' of the function. `PackageCompiler` uses this example run to see which methods are used during the run and so can be compiled in advance. An existing example run is provided in the `./function/precompile_runtime.jl` file. This example can be enhanced by, say, adding a more realistic invocation, which may improve performance further.
 
 ### AWS-Craft
 #### Finding your user details

@@ -1,5 +1,9 @@
+import Pkg
+Pkg.activate(pwd())
+
+module Jot
+
 # IMPORTS
-import SimpleContainerGenerator
 using ArgParse, JSON
 
 # EXCEPTIONS
@@ -17,6 +21,7 @@ end
   special_folder_names::Array{String}
   default_config_path::String
   script_templates_path::String
+  required_packages::Array{String}
 end
 
 const builtins = Builtins(
@@ -28,10 +33,11 @@ const builtins = Builtins(
   special_folder_names = ["_runtime", "_depot"],
   default_config_path = "./config.json",
   script_templates_path = "./template/scripts",
+  required_packages = ["HTTP", "JSON"],
 )
 
 # CODE
-function parse_commandline() 
+function parse_commandline(args) 
   s = ArgParseSettings(
     "A utility to create Julia docker containers for use in AWS Lambda",
     version="1.0.0",
@@ -42,14 +48,20 @@ function parse_commandline()
     "--config-file", "-c"
       help = "Path to configuration file to use for build"
       default = "$(builtins.default_config_path)"
-    "buildfilesonly"
-      help = "Create build files only (in $(builtins.scripts_path)) from the configuration file and Dockerfile_template"
-      action = :command
+    "--packaged", "-p"
+      help = "Use PackageCompiler to create Docker image; increases build times but decreases function response times in AWS Lambda"
+      action = :store_true
+    "--no-cache"
+      help = "Construct the docker image without using existing cache, eg from scratch"
+      action = :store_true
     "buildimage"
       help = "Build a docker image from the configuration file and Dockerfile_template"
       action = :command
+    "buildfilesonly"
+      help = "Create build files only (in $(builtins.scripts_path)) from the configuration file and Dockerfile_template"
+      action = :command
   end
-  parse_args(s)
+  parse_args(args, s)
 end
 
 @Base.kwdef struct AWSConfig
@@ -65,6 +77,7 @@ end
   base::String
   runtime_path::String
   julia_depot_path::String
+  julia_cpu_target::String
 end
 
 @Base.kwdef struct LambdaFunctionConfig
@@ -101,6 +114,7 @@ function create_config(
     base=cfg["base"], 
     julia_depot_path=cfg["julia_depot_path"], 
     runtime_path=cfg["runtime_path"], 
+    julia_cpu_target=cfg["julia_cpu_target"]
   )
 
   lambda_function_config = LambdaFunctionConfig(
@@ -135,6 +149,7 @@ function interpolate_string_with_config(
     raw"$(image.base)" => config.image.base,
     raw"$(image.runtime_path)" => config.image.runtime_path,
     raw"$(image.julia_depot_path)" => config.image.julia_depot_path,
+    raw"$(image.julia_cpu_target)" => config.image.julia_cpu_target,
     raw"$(image.full_image_string)" => get_image_name(config),
     raw"$(lambda_function.name)" => config.lambda_function.name,
     raw"$(lambda_function.timeout)" => config.lambda_function.timeout,
@@ -232,7 +247,14 @@ function dockerfile_add_julia_image(config::Config)::String
   """
 end
 
-function dockerfile_runtime_files(config::Config)::String
+function dockerfile_add_utilities()::String
+  """
+  RUN apt-get update && apt-get install -y \\
+    gcc
+  """
+end
+
+function dockerfile_runtime_files(config::Config, package::Bool)::String
   """
   RUN mkdir -p $(config.image.julia_depot_path)
   ENV JULIA_DEPOT_PATH=$(config.image.julia_depot_path)
@@ -243,6 +265,7 @@ function dockerfile_runtime_files(config::Config)::String
 
   # COPY $(config.file_path) ./
   COPY $(config.image.runtime_path)/. ./
+  RUN julia build_runtime.jl $(config.image.runtime_path) $package $(get_dependencies_json(config)) $(config.image.julia_cpu_target)
 
   ENV PATH="$(config.image.runtime_path):\${PATH}"
 
@@ -250,40 +273,39 @@ function dockerfile_runtime_files(config::Config)::String
   """
 end
 
-function dockerfile_dependencies_and_precompile(config::Config)::String
-  required_packages = ["HTTP", "JSON"]
-  deps = ""
-  for dep in [required_packages; config.image.dependencies]
-    deps = deps * "\\\"$dep\\\","
-  end
-  println(deps)
+function dockerfile_add_permissions(config::Config)::String
   """
-  RUN julia --startup-file=no -e "using Pkg; Pkg.add([$deps]); Pkg.precompile();"
+  RUN chmod +x -R $(config.image.runtime_path)
+  RUN chmod +x -R $(config.image.julia_depot_path)
   """
 end
 
-function build_packaged_dockerfile(config::Config)
-
+function get_dependencies_json(config::Config)::String
+  # all_deps = [builtins.required_packages; config.image.dependencies]
+  all_deps = config.image.dependencies
+  all_deps_string = ["\"$dep\"" for dep in all_deps]
+  json(all_deps)
 end
 
-function build_standard_dockerfile(config::Config)
+function build_standard_dockerfile(config::Config, package::Bool)
   contents = foldl(
     *, [
     dockerfile_add_julia_image(config),
-    dockerfile_runtime_files(config),
-    dockerfile_dependencies_and_precompile(config),
+    dockerfile_add_utilities(),
+    dockerfile_runtime_files(config, package),
+    dockerfile_add_permissions(config),
   ]; init = "")
   open("$(builtins.image_path)/Dockerfile", "w") do dockerfile
     write(dockerfile, contents)
   end
 end
 
-function build_dockerfile_script(config::Config)
+function build_dockerfile_script(config::Config, no_cache::Bool)
   contents = """
   #!/bin/bash
   DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   docker build \\
-    --rm \\
+    --rm $(no_cache ? "--no-cache" : "") \\
     --tag $(get_image_name(config)) \\
     \$DIR/.
   """
@@ -292,14 +314,16 @@ function build_dockerfile_script(config::Config)
   end
 end
 
-function give_runtime_execution_permissions(config::Config)
+function give_necessary_permissions(config::Config)
   img = builtins.image_path
   runtime = config.image.runtime_path
+  depot = config.image.julia_depot_path
   run(`chmod +x -R $img$runtime`)
+  run(`chmod +x -R $img$depot`)
 end
 
-function main()
-  parsed_args = parse_commandline()
+function main(args)
+  parsed_args = parse_commandline(args)
   config_fpath = parsed_args["config_file"]
   
   if parsed_args["%COMMAND%"] in ["buildfilesonly", "buildimage"]
@@ -310,12 +334,14 @@ function main()
     replace_special_directories(builtins.image_path, config)
     interpolate_scripts(builtins.image_path, config)
     interpolate_scripts(builtins.scripts_path, config)
-    give_runtime_execution_permissions(config)
+    println("./scripts built")
+    give_necessary_permissions(config)
+    println("./image built")
 
     copy_function(config)
 
-    build_standard_dockerfile(config)
-    build_dockerfile_script(config)
+    build_standard_dockerfile(config, parsed_args["packaged"])
+    build_dockerfile_script(config, parsed_args["no_cache"])
     println("Dockerfile created")
   end
   if parsed_args["%COMMAND%"] == "buildimage"
@@ -323,4 +349,7 @@ function main()
   end
 end
 
-main()
+end # module
+
+Jot.main(ARGS)
+

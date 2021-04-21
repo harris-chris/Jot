@@ -14,7 +14,7 @@ int main( int argc, char *argv[] )
   /*printf("ARGSTRING %s\n", argstring);*/
   char script[] = "\
   #/bin/bash\n\
-  julia ./src/julia-for-aws-lambda.jl%s\
+  julia ./src/Jot.jl%s\
   ";
   char command[2048];
   sprintf(command, script, argstring);

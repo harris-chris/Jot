@@ -1,8 +1,9 @@
 #!/bin/bash
 if [ -z "${AWS_LAMBDA_RUNTIME_API}" ]; then
-  echo "AWS_LAMBDA_RUNTIME_API not found, starting AWS RIE"
-  exec aws-lambda-rie /usr/local/julia/bin/julia /var/runtime/runtime.jl 127.0.0.1:9001
+  LOCAL="127.0.0.1:9001"
+  echo "AWS_LAMBDA_RUNTIME_API not found, starting AWS RIE on $LOCAL"
+  exec aws-lambda-rie /usr/local/julia/bin/julia -e "using JuliaLambdaRuntime; start_runtime(\"$LOCAL\")"
 else
   echo "AWS_LAMBDA_RUNTIME_API = $AWS_LAMBDA_RUNTIME_API, running Julia"
-  exec /usr/local/julia/bin/julia /var/runtime/runtime.jl $AWS_LAMBDA_RUNTIME_API
+  exec /usr/local/julia/bin/julia -e "using JuliaLambdaRuntime; start_runtime(\"$AWS_LAMBDA_RUNTIME_API\")"
 fi

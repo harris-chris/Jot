@@ -29,6 +29,7 @@ end
 
 function react_to_invocation(inv::Invocation)::Union{InvocationResponse, InvocationError}
   # Your code goes here - example below!
+  println("Reacting to invocation")
   try
     num_a = inv.body["a"]
     num_b = inv.body["b"]
