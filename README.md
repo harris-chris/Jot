@@ -1,10 +1,10 @@
 ## Julia AWS Lambda Image
-AWS does not provide native support for Julia, so functions must be put into containers which implement AWS's [Lambda API](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html), and uploaded to AWS ECR. This repo aims to reduce this to a simple, customizable and transparent process:
+AWS does not provide native support for Julia, so functions must be put into containers which implement AWS's [Lambda API](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html), and uploaded to AWS ECR. This repo aims to reduce this to a simple, customizable and transparent process, which results in a low-latency Lambda function:
 1. [Enter your configuration](#configjson) for your AWS account and the function to be created in the `config.json` file
 2. [Add your function code](#adding-function-code) to the `react_to_invocation` function in `function/function.jl`
 3. [Build the image](#build-the-image) locally: `./jot buildimage`.
-This will build your docker container. It also adds [two directories](#where-do-the-scripts-and-image-directories-come-from): `image` (containing the Dockerfile, and [the files that will be added to the Docker image](#the-image-directory), and `scripts`, containing [bash scripts that will be usful for managing the image](#the-scripts-directory). Amongst these are scripts to:
-4. (Optionally) [test the container locally](#testing-the-container-locally) with a sample JSON, eg `bash scripts/test_image_locally.sh '{"Key1":"Value1"}'`
+This will build your docker container. It also adds [two directories](#where-do-the-scripts-and-image-directories-come-from): `image` - containing the Dockerfile, and [the files that will be added to the Docker image](#the-image-directory) - and `scripts`, containing [bash scripts that will be usful for managing the image](#the-scripts-directory). Amongst these are scripts to:
+4. (Optionally) [test the container locally](#testing-the-container-locally) with a sample JSON, eg `bash scripts/test_image_locally.sh '{"a":10, "b":15, "operation":"+"}'`
 5. [Define the function on AWS Lambda](#defining-the-aws-lambda-function) - `bash scripts/login_to_ecr.sh`, if you are not currently logged in, then `bash scripts/push_image_to_ecr_and_create_lambda_function.sh` to push the docker image to Amazon ECR and create the associated function in AWS Lambda.
 
 ### config.json
