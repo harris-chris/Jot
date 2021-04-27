@@ -48,6 +48,8 @@ The `./jot` executable comes with multiple commands, amongst which are `buildfil
 - `buildfilesonly` adds the files to be added to the image, and a Dockerfile, to the `image` folder, but does not build the image. This allows you to edit any of these files prior to building. When ready to build, run `bash ./image/build_image.sh` to invoke the `image/build_image.sh` script, which will build the image locally. If you edit any files in the `image` directory, note that running either `./jot buildimage` or `./jot buildfilesonly` [will overwrite your changes](#where-do-the-scripts-and-image-directories-come-from) from the `template` folder. If you would like to make persistent changes to any of these files, you should edit the `template` folder.
 After going through either of these processes, you should see the image in the output of `docker image ls`. The image name will contain your AWS Account number as well as the image name and tag defined in `config.json`.
 
+Within the Dockerfile, the `build_runtime.jl` Julia script will be called. Amongst other things, this will use `Pkg` to add the runtime from a separate repo - [harris-chris/julia-lambda-runtime](https://github.com/harris-chris/julia-lambda-runtime).
+
 Another important option is the `--packaged` command-line argument. An image built with `--packaged` uses [PackageCompiler.jl](https://github.com/JuliaLang/PackageCompiler.jl) to create a custom system image for the Lambda runtime and for your function. This will increase image build times, but decrease Lambda function run-times. It is therefore recommended for production, but not for testing. More details on how to optimize an image [here](#how-to-reduce-function-runtimes).
 
 ### The `image` directory
