@@ -1,16 +1,10 @@
 #!/bin/bash
 
-# Delete lambda function if it already exists
-aws lambda list-functions \
-  | grep '"FunctionArn": "$(image.function_arn_string)"' \
-  >/dev/null
+# Get the current path
+THIS_DIR=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
-if [ $? -eq 0 ];
-then
-  echo "Found existing function; deleting it"
-  aws lambda delete-function \
-    --function-name=$(lambda_function.name)
-fi
+# Delete lambda function if it already exists
+bash $THIS_DIR/delete_lambda_function.sh
 
 # Create a function based on the ECR image 
 read RESULT < <(aws lambda create-function \

@@ -1,6 +1,6 @@
 {
   "aws": {
-    "account_id": "111111111111",
+    "account_id": "513118378795",
     "region": "ap-northeast-1",
     "role": "lambda-role"
   },
