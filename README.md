@@ -4,28 +4,28 @@ AWS does not provide native support for Julia, so functions must be put into con
 2. [Add your function code](#adding-function-code) to the `react_to_invocation` function in `function/function.jl`
 3. [Build the image](#build-the-image) locally: `./jot buildimage`.
 This will build your docker container. It also adds [two directories](#where-do-the-scripts-and-image-directories-come-from): `image` - containing the Dockerfile, and [the files that will be added to the Docker image](#the-image-directory) - and `scripts`, containing [bash scripts that will be usful for managing the image](#the-scripts-directory). Amongst these are scripts to:
-4. (Optionally) [test the container locally](#testing-the-container-locally) with a sample JSON, eg `bash scripts/test_image_locally.sh '{"a":10, "b":15, "operation":"+"}'`
-5. [Define the function on AWS Lambda](#defining-the-aws-lambda-function) - `bash scripts/login_to_ecr.sh`, if you are not currently logged in, then `bash scripts/push_image_to_ecr_and_create_lambda_function.sh` to push the docker image to Amazon ECR and create the associated function in AWS Lambda.
+4. (Optionally) [test the container locally](#testing-the-container-locally) by invoking it with a sample JSON, eg `bash scripts/test_image_locally.sh '{"a":10, "b":15, "operation":"+"}'`
+5. [Define the function on AWS Lambda](#defining-the-aws-lambda-function) - `bash scripts/push_image_to_ecr_and_create_lambda_function.sh` to push the docker image to Amazon ECR and create the associated function in AWS Lambda.
 
 ### config.json
-This is the config file for the Lambda image. It is divided into three parts (aws, image, and lambda_function, for your aws details, the docker image definition, and the AWS Lambda function respectively. Most of these fields have sensible defaults and can be left as they are. The fields are as follows:
+This is the config file for the Lambda image. It is divided into three parts (aws, image, and lambda_function, for your aws details, the docker image definition, and the AWS Lambda function respectively. Most of these fields have sensible defaults and can be left as they are. The fields are as follows (\* denotes that a field should be changed from its default):
 
 **aws**
-- `account_id` is your 12-digit AWS ID. [See below for how to find this](#finding-your-user-details).
-- `region` is your AWS region code. [See below for how to find this](#finding-your-user-details).
-- `role` is the AWS role that will execute the lambda function. You will need to create this if you do not already have one. [Instructions to do so below](#creating-a-lambda-user-role).
+- \* `account_id` is your 12-digit AWS ID. [See below for how to find this](#finding-your-user-details).
+- \* `region` is your AWS region code. [See below for how to find this](#finding-your-user-details).
+- `role` is the name for the AWS role that will execute the lambda function. It has no functional effect. If this role does not already exist, it will be created.
 
 **image**
 - `name` is your chosen name for your Julia image. It will have the AWS Account ID, the region and other data prepended to it when built. The name has no functional effect.
 - `tag` is the tag for your image. If you are not using version numbers, just use `latest`.
 - `base` is the name of the Julia base image, by default `1.6.0`. A full list can be found at [docker hub](https://hub.docker.com/_/julia)
-- `dependencies` is a list of Julia packages to add to the image. This should just be a list of strings that will be used with Pkg.add() - for example, `["DataFrames"]` for DataFrames.jl, or `["DataFrames", "Distributions"]`. These will be added to the image during the image build and precompiled.
+- \* `dependencies` is a list of Julia packages to add to the image. This should just be a list of strings that will be used with Pkg.add() - for example, `["DataFrames"]` for DataFrames.jl, or `["DataFrames", "Distributions"]`. These will be added to the image during the image build and precompiled.
 - `runtime_path` is the path that will be created on the docker image to store the files used at runtime, including the julia file containing your function.
 - `julia_depot_path` is the path that will be created on the docker image to act as the Julia depot path.
 - `julia_cpu_target` is the JULIA_CPU_TARGET variable that will be used when compiling the docker image. If you change this, note that if it is incompatible with the hardware being used by AWS Lambda, the function may not work.
 
 **lambda_function**
-- `name` is the name for your lambda function. The function will be re-built each time the `push_image_to_ecr_and_create_lambda_function.sh` script is run. Note that this begins by **erasing any existing functions in AWS Lambda with the same name**.
+- \* `name` is the name for your lambda function. The function will be re-built each time the `push_image_to_ecr_and_create_lambda_function.sh` script is run. Note that this begins by **erasing any existing functions in AWS Lambda with the same name**.
 - `timeout` is the period that Lambda will wait for the container to respond before timing out. Lambda's default value (3 seconds) is too small for a cold-started Julia container that has not been pre-packaged. 20 seconds should be sufficient.
 - `memory_size` is the allocated memory to run the container with. Since Lambda charges per GB-second, you want this to relatively low. If it is set too low, Julia will throw a Segmentation Fault.
 
@@ -37,10 +37,12 @@ The only place you will need to add your function code is in the `react_to_invoc
 Note that AWS does not specify the format of its errors, and the fields of `InvocationError` that has been pre-defined in `function/function.jl` are arbitrary and may be changed without issue.
 
 ### Testing the container locally
-AWS provides an RIE (Runtime Interface Emulator) to allow you to test Lambda images locally before pushing them to AWS. This runs the container in a proxy of the environment that will be used on AWS servers. By running the `run_image_locally.sh` script, the container will be started locally (on port 9000). It will run non-detached, so to test it, open up another terminal window, then run the `test_image_locally.sh` script. You should see "SUCCESS" returned as a value, and be able to see debug information on the original terminal window.
+AWS provides an RIE (Runtime Interface Emulator) to allow you to test Lambda images locally before pushing them to AWS. This runs the container in a proxy of the environment that will be used on AWS servers. By running the `run_image_locally.sh` script, the container will be started locally (on port 9000). It will run non-detached, so to test it, open up another terminal window, then run the `test_image_locally.sh` script, passing it a JSON string.
+
+If you have not defined your own lambda function, the default one does simple addition or subtraction based on passed JSON, so try `bash scripts/test_image_locally.sh '{"a":10, "b":15, "operation":"+"}'`, which should return `25`.
 
 ### Defining the AWS Lambda function
-When ready, run `bash ./push_image_and_create_function.sh` to run a script that will push the image to AWS Elastic Container Registry, and then create a Lambda function based on that image. You can log into AWS and go to the Lambda console to observe the function and test it.
+When ready, run `bash scripts/push_image_and_create_function.sh` to run a script that will push the image to AWS Elastic Container Registry, and then create a Lambda function based on that image. You can log into AWS and go to the Lambda console to observe the function and test it.
 
 ### Building the files, or building the files and the image
 The `./jot` executable comes with multiple commands, amongst which are `buildfilesonly` and `buildimage`. These two offer different routes for building the docker image:
@@ -68,16 +70,16 @@ The `template` folder contains templates for both the `scripts` and `image` fold
 ```
 docker run \
   -p 9000:8080 \
-  -it $(image.full_image_string)
+  -it $(image.image_uri_string)
 ```
-After it is copied to `./scripts`, `$(image.full_image_string)` is replaced with the full image name, so that it becomes, say, 
+After it is copied to `./scripts`, `$(image.image_uri_string)` is replaced with the image uri, so that it becomes, say, 
 ```
 docker run \
   -p 9000:8080 \
   -it 111111111111.dkr.ecr.ap-northeast-1.amazonaws.com/julia-lambda:latest
 ```
 - any special folder names in the newly-created `image` directory, like _runtime or _depot, are changed to the their appropriate values from the `config.json`.
-- finally, the lambda function itself is copied to the runtime folder - defined in `config.json` but by default `./image/var/runtime`, from `./function`.
+- finally, the lambda function itself is copied from `./function` to the runtime folder - which is defined in `config.json` but is by default `./image/var/runtime`.
 
 If you would like to make persistent changes to the scripts, or the files that are ultimately included in the docker image, you should make them in the `template` folder, in which case they will be included in future builds created from this folder.
 

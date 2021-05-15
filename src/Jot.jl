@@ -1,5 +1,6 @@
 import Pkg
 Pkg.activate(pwd())
+Pkg.instantiate()
 
 module Jot
 
@@ -131,10 +132,29 @@ function create_config(
   )
 end
 
-function get_image_name(config::Config)::String
+function get_image_uri_string(config::Config)::String
   "$(config.aws.account_id).dkr.ecr.$(config.aws.region).amazonaws.com/$(config.image.name):$(config.image.tag)"
 end
 
+function get_role_arn_string(config::Config)::String
+  "arn:aws:iam::$(config.aws.account_id):role/$(config.aws.role)"
+end
+
+function get_function_uri_string(config::Config)::String
+  "$(config.aws.account_id).dkr.ecr.$(config.aws.region).amazonaws.com/$(config.image.name)"
+end
+
+function get_function_arn_string(config::Config)::String
+  "arn:aws:lambda:$(config.aws.region):$(config.aws.account_id):function:$(config.lambda_function.name)"
+end
+
+function get_ecr_arn_string(config::Config)::String
+  "arn:aws:ecr:$(config.aws.region):$(config.aws.account_id):repository/$(config.lambda_function.name)"
+end
+
+function get_ecr_uri_string(config::Config)::String
+  "$(config.aws.account_id).dkr.ecr.$(config.aws.region).amazonaws.com/$(config.lambda_function.name)"
+end
 
 function interpolate_string_with_config(
     str::String,
@@ -144,13 +164,18 @@ function interpolate_string_with_config(
     raw"$(aws.account_id)" => config.aws.account_id,
     raw"$(aws.region)" => config.aws.region,
     raw"$(aws.role)" => config.aws.role,
+    raw"$(aws.role_arn_string)" => get_role_arn_string(config),
     raw"$(image.name)" => config.image.name,
     raw"$(image.tag)" => config.image.tag,
     raw"$(image.base)" => config.image.base,
     raw"$(image.runtime_path)" => config.image.runtime_path,
     raw"$(image.julia_depot_path)" => config.image.julia_depot_path,
     raw"$(image.julia_cpu_target)" => config.image.julia_cpu_target,
-    raw"$(image.full_image_string)" => get_image_name(config),
+    raw"$(image.image_uri_string)" => get_image_uri_string(config),
+    raw"$(image.ecr_arn_string)" => get_ecr_arn_string(config),
+    raw"$(image.ecr_uri_string)" => get_ecr_uri_string(config),
+    raw"$(image.function_uri_string)" => get_function_uri_string(config),
+    raw"$(image.function_arn_string)" => get_function_arn_string(config),
     raw"$(lambda_function.name)" => config.lambda_function.name,
     raw"$(lambda_function.timeout)" => config.lambda_function.timeout,
     raw"$(lambda_function.memory_size)" => config.lambda_function.memory_size,
@@ -306,7 +331,7 @@ function build_dockerfile_script(config::Config, no_cache::Bool)
   DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
   docker build \\
     --rm $(no_cache ? "--no-cache" : "") \\
-    --tag $(get_image_name(config)) \\
+    --tag $(get_image_uri_string(config)) \\
     \$DIR/.
   """
   open("$(builtins.image_path)/build_image.sh", "w") do build_script

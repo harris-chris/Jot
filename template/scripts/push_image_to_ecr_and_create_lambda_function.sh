@@ -1,19 +1,13 @@
 #!/bin/bash
+# Get the current directory
+THIS_DIR=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+# Login to ecr
+bash $THIS_DIR/login_to_ecr.sh
+# Create user role
+bash $THIS_DIR/create_lambda_user_role.sh
 # Create the ECR repository, if it doesn't already exists
-aws ecr create-repository \
-  --repository-name $(lambda_function.name) \
-  --image-scanning-configuration scanOnPush=true \
-  --region $(aws.region)
+bash $THIS_DIR/create_ecr_repository.sh
 # Push the image to ECR
-docker push $(image.full_image_string)
-# Delete lambda function if it already exists
-aws lambda delete-function \
-  --function-name=$(lambda_function.name)
-# Create a function based on the ECR image 
-aws lambda create-function \
-  --function-name=$(lambda_function.name) \
-  --code ImageUri=$(image.full_image_string) \
-  --role=arn:aws:iam::$(aws.account_id):role/$(aws.role) \
-  --package-type Image \
-  --timeout=$(lambda_function.timeout) \
-  --memory-size=$(lambda_function.memory_size)
+docker push $(image.image_uri_string)
+# Create the function
+bash $THIS_DIR/create_lambda_function.sh

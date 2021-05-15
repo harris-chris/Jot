@@ -2,7 +2,7 @@
   "aws": {
     "account_id": "111111111111",
     "region": "ap-northeast-1",
-    "role": "lambda-test-user"
+    "role": "lambda-role"
   },
   "image": {
     "name": "julia-lambda",
@@ -16,7 +16,7 @@
   "lambda_function": {
     "name": "test-function",
     "timeout": 30,
-    "memory_size": 600
+    "memory_size": 1000
   }
 }
 
