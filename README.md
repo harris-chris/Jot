@@ -95,32 +95,6 @@ After logging in to AWS, your user ID can be found by clicking on your username:
 And your region code is listed next to the region name:
 ![get your aws region](./.readme-images/get_aws_region.png)
 
-#### Creating a Lambda user role
-From the navigation bar, go to the IAM console:
-![go to iam](./.readme-images/go_to_iam.png)
-
-Select Roles:
-
-![go to iam roles](./.readme-images/go_to_iam_roles.png) 
-
-and then click 'Create role'.
-
-From within the new screen, select 'AWS service' 
-
-![Select AWS service](./.readme-images/roles_go_to_aws_service.png)
-
-then select 'Lambda' from the available options. Select 'Next: Permissions':
-
-![Select AWS Lambda](./.readme-images/roles_select_lambda.png)
-
-Filter for the 'AWSLambdaBasicExecutionRole' policy, and tick it before clicking 'Next: Tags':
-
-![Select AWSLambdaBasicExecutionRole](./.readme-images/select_lambdabasicexecutionrole.png)
-
-Click through the 'Tags' screen, to the 'Review' screen. Enter a role name and then create the role:
-
-![Add name and then create](./.readme-images/give_role_name.png)
-
 ### Troubleshooting
 - **Getting a Segmentation Fault while running in AWS**: if the allocated memory for the Lambda function (defined in the `MemorySize` field of the `config.json`) is too low, Julia will not fail gracefully and will throw a Segmentation Fault. The default Lambda memory size (100mb) will cause this to occur.
 
