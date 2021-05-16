@@ -2,3 +2,4 @@
 /image/
 shell.nix
 vscjl*
+push_to_github.fish

@@ -61,6 +61,9 @@ function parse_commandline(args)
     "buildfilesonly"
       help = "Create build files only (in $(builtins.scripts_path)) from the configuration file and Dockerfile_template"
       action = :command
+    "getdefaultconfig"
+      help = "Create a default configuration file, default_config.json"
+      action = :command
   end
   parse_args(args, s)
 end
@@ -70,6 +73,12 @@ end
   region::String
   role::String
 end
+
+JSON.lower(aws::AWSConfig) = Dict(
+                                  "account_id" => aws.account_id,
+                                  "region" => aws.region,
+                                  "role" => aws.role
+                                 )
 
 @Base.kwdef struct ImageConfig
   name::String
@@ -81,18 +90,39 @@ end
   julia_cpu_target::String
 end
 
+JSON.lower(image::ImageConfig) = Dict(
+                                  "name" => image.name,
+                                  "tag" => image.tag,
+                                  "dependencies" => image.dependencies,
+                                  "base" => image.base,
+                                  "runtime_path" => image.runtime_path,
+                                  "julia_depot_path" => image.julia_depot_path,
+                                  "julia_cpu_target" => image.julia_cpu_target,
+                                 )
+
 @Base.kwdef struct LambdaFunctionConfig
   name::String
   timeout::Int
   memory_size::Int
 end
 
+JSON.lower(lambda::LambdaFunctionConfig) = Dict(
+                                  "name" => lambda.name,
+                                  "timeout" => lambda.timeout,
+                                  "memory_size" => lambda.memory_size,
+                                 )
+
 @Base.kwdef struct Config
   aws::AWSConfig
   image::ImageConfig
   lambda_function::LambdaFunctionConfig
-  file_path::String
 end
+
+JSON.lower(config::Config) = Dict(
+                                  "aws" => JSON.lower(config.aws),
+                                  "image" => JSON.lower(config.image),
+                                  "lambda_function" => JSON.lower(config.lambda_function),
+                                 )
 
 function read_config_file(config_fpath::String)::Dict{String, Dict{String, Any}}
   JSON.parsefile(config_fpath)
@@ -132,8 +162,39 @@ function create_config(
    aws=aws_config, 
    image=image_config, 
    lambda_function=lambda_function_config,
-   file_path=config_fpath,
   )
+end
+
+function get_default_config(prefix::String="")::Config
+  prefix = prefix == "" ? "" : prefix * "-" 
+  Config(
+    aws = AWSConfig(
+      account_id = "123456789012",
+      region = "ap-northeast-1",
+      role = prefix * "LambdaExecutionRole",
+    ),
+    image = ImageConfig(
+      name = prefix * "julia-lambda",
+      tag = "latest",
+      base = "1.6.0",
+      dependencies = [],
+      runtime_path = "/var/runtime",
+      julia_depot_path = "/var/julia",
+      julia_cpu_target = "x86-64",
+    ),
+    lambda_function = LambdaFunctionConfig(
+      name = prefix * "julia-function",
+      timeout = 30,
+      memory_size = 1000,
+    )
+  )
+end
+
+function generate_default_config_file()
+  default_config = get_default_config()
+  open("default_config.json", "w") do f
+    JSON.print(f, default_config, 4)
+  end
 end
 
 function get_image_uri_string(config::Config)::String
@@ -354,8 +415,10 @@ end
 function main(args)
   parsed_args = parse_commandline(args)
   config_fpath = parsed_args["config_file"]
-  
-  if parsed_args["%COMMAND%"] in ["buildfilesonly", "buildimage"]
+  command = parsed_args["%COMMAND%"]
+  if command == "getdefaultconfig"
+    generate_default_config_file()
+  elseif command in ["buildfilesonly", "buildimage"]
     config_json = read_config_file(config_fpath)
     config = create_config(config_json, config_fpath)
     println("Configuration parsed")
