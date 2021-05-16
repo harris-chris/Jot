@@ -94,13 +94,17 @@ end
   file_path::String
 end
 
+function read_config_file(config_fpath::String)::Dict{String, Dict{String, Any}}
+  JSON.parsefile(config_fpath)
+end
+
 function create_config(
+    config_json::Dict{String, Dict{String, Any}},
     config_fpath::String,
   )::Config
-  file_cfg = JSON.parsefile(config_fpath)
 
   # flatten the configuration keys
-  cfg = merge(values(file_cfg)...)
+  cfg = merge(values(config_json)...)
 
   aws_config = AWSConfig(
     account_id=cfg["account_id"], 
@@ -352,7 +356,8 @@ function main(args)
   config_fpath = parsed_args["config_file"]
   
   if parsed_args["%COMMAND%"] in ["buildfilesonly", "buildimage"]
-    config = create_config(config_fpath)
+    config_json = read_config_file(config_fpath)
+    config = create_config(config_json, config_fpath)
     println("Configuration parsed")
 
     copy_template()
