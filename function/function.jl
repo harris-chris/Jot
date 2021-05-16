@@ -49,3 +49,6 @@ function react_to_invocation(inv::Invocation)::Union{InvocationResponse, Invocat
     return InvocationError(e)
   end
 end
+
+TEST_INVOCATION_BODY = Dict("a" => 2, "b" => 3, "operation" => "+")
+
