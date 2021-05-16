@@ -269,6 +269,8 @@ function interpolate_string_with_config(
 end
 
 function get_test_invocation_body(function_fpath::String)::String
+  @info pwd()
+  @show joinpath(pwd(), "function/function.jl")
   include(function_fpath)
   JSON.json(TEST_INVOCATION_BODY, 4)
 end
@@ -278,20 +280,18 @@ function get_test_invocation_response(function_fpath::String)::String
   JSON.json(TEST_INVOCATION_RESPONSE, 4)
 end
 
-function copy_template()
-  tmp = builtins.template_path
+function copy_template(from::String, to::String)
   dirs = filter(
-                x -> isdir(joinpath(tmp, x)),
-                readdir(builtins.template_path)
+                x -> isdir(joinpath(from, x)),
+                readdir(from)
                )
-  foreach(dir -> run(`rm -rf $dir`), dirs)
-  foreach(dir -> run(`cp $tmp/$dir ./ -r`), dirs)
+  foreach(dir -> run(`rm -rf $(joinpath(to, dir))`), dirs)
+  foreach(dir -> run(`cp $(joinpath(from, dir)) $(to) -r`), dirs)
 end
 
-function copy_function(config::Config)
-  func = builtins.function_path
-  runtime = "$(builtins.image_path)$(config.image.runtime_path)"
-  run(`cp $func/. $runtime -r`)
+function copy_function(function_path::String, image_path::String, config::Config)
+  runtime = joinpath(image_path, config.image.runtime_path)
+  run(`cp $function_path/. $runtime -r`)
 end
 
 function map_special_folder(name::String, config::Config)::String
@@ -360,6 +360,11 @@ function write_interpolated_scripts(scripts::Vector{InterpolatedScript}, path::U
       write(f, is.script)
     end
   end
+end
+
+function interpolate_scripts_inplace(path::String, config::Config)
+  scripts = get_interpolated_scripts(path, config) 
+  write_interpolated_scripts(scripts)
 end
 
 function dockerfile_add_julia_image(config::Config)::String
@@ -440,12 +445,11 @@ function create_dockerfile_build_script_file(contents::String, fpath::String)
   end
 end
 
-function give_necessary_permissions(config::Config)
-  img = builtins.image_path
+function give_necessary_permissions(image_dir::String, config::Config)
   runtime = config.image.runtime_path
   depot = config.image.julia_depot_path
-  run(`chmod +x -R $img$runtime`)
-  run(`chmod +x -R $img$depot`)
+  run(`chmod +x -R $image_dir$runtime`)
+  run(`chmod +x -R $image_dir$depot`)
 end
 
 function main(args::String)
@@ -475,25 +479,29 @@ function main(args::Vector{String})
   main(command, parsed_args, config)
 end
 
-function main(command::String, parsed_args::Dict{String, Any}, config::Union{Nothing, Config})
+function main(
+    command::String, 
+    parsed_args::Dict{String, Any}, 
+    config::Union{Nothing, Config},
+    from_dir::Union{Nothing, String} = nothing,
+  )
+  isnothing(from_dir) || cd(from_dir)
+  @info pwd()
   if command == "getdefaultconfig"
     generate_default_config_file()
   elseif command in ["buildfilesonly", "buildimage"]
     isnothing(config) && error("Configuration data not found; please check if config.json exists")
-    copy_template()
+    copy_template(builtins.template_path, "./")
     replace_special_directories(builtins.image_path, config)
     # Interpolate image path scripts
-    image_path_scripts = get_interpolated_scripts(builtins.image_path, config)
-    write_interpolated_scripts(image_path_scripts)
-    # Interpolate scripts path scripts
-    scripts_path_scripts = get_interpolated_scripts(builtins.scripts_path, config)
-    write_interpolated_scripts(scripts_path_scripts)
+    interpolate_scripts_inplace(builtins.image_path, config)
+    interpolate_scripts_inplace(builtins.scripts_path, config)
     println("./scripts built")
     # Give file permissions
-    give_necessary_permissions(config)
+    give_necessary_permissions(builtins.image_path, config)
     println("./image built")
 
-    copy_function(config)
+    copy_function(builtins.function_path, builtins.image_path, config)
 
     dockerfile_string = get_dockerfile_contents(config, parsed_args["packaged"])
     create_dockerfile_file(dockerfile_string, "$(builtins.image_path)/Dockerfile")

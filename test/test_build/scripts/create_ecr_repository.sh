@@ -1,10 +1,10 @@
 #!/bin/bash
-aws ecr describe-repositories | grep '"repositoryArn": "arn:aws:ecr:ap-northeast-1:513118378795:repository/vzlf3wgr25-julia-function"' >/dev/null
+aws ecr describe-repositories | grep '"repositoryArn": "$(image.ecr_arn_string)"' >/dev/null
 if [ $? -eq 1 ];
 then
   echo "Repository not found; creating"
   aws ecr create-repository \
-    --repository-name vzlf3wgr25-julia-function \
+    --repository-name $(lambda_function.name) \
     --image-scanning-configuration scanOnPush=true \
-    --region ap-northeast-1
+    --region $(aws.region)
 fi

@@ -20,13 +20,15 @@ RESPONSE=$(curl -XPOST \
 
 wait $!
 
+docker stop $CONTAINER &>/dev/null
+echo "Local container $CONTAINER stopped"
+wait $!
+
 if [ $RESPONSE -eq $EXPECTED_RESPONSE ]
 then
   echo "Received $RESPONSE; Test passed"
+  exit 0
 else
   echo "Received $RESPONSE; Test failed"
+  exit 1
 fi
-
-docker stop $CONTAINER &>/dev/null
-echo "Local container $CONTAINER stopped"
-

@@ -1,6 +1,6 @@
 #!/bin/bash
-aws ecr get-login-password --region ap-northeast-1 \
+aws ecr get-login-password --region $(aws.region) \
   | docker login \
   --username AWS \
   --password-stdin \
-  513118378795.dkr.ecr.ap-northeast-1.amazonaws.com/vzlf3wgr25-julia-lambda
+  $(aws.account_id).dkr.ecr.$(aws.region).amazonaws.com/$(image.name)
