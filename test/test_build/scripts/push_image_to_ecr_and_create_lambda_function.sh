@@ -8,6 +8,6 @@ bash $THIS_DIR/create_lambda_user_role.sh
 # Create the ECR repository, if it doesn't already exists
 bash $THIS_DIR/create_ecr_repository.sh
 # Push the image to ECR
-docker push $(image.image_uri_string)
+docker push 513118378795.dkr.ecr.ap-northeast-1.amazonaws.com/glero5hpyq-julia-lambda:latest
 # Create the function
 bash $THIS_DIR/create_lambda_function.sh

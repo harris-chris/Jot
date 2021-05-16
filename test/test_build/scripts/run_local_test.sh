@@ -4,13 +4,14 @@ THIS_DIR=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 CONTAINER=$(docker run \
   -p 9000:8080 \
   -d \
-  -i $(image.image_uri_string))
+  -i 513118378795.dkr.ecr.ap-northeast-1.amazonaws.com/glero5hpyq-julia-lambda:latest)
 echo "Local container $CONTAINER started"
 
 INVOCATION_BODY=$(<"$THIS_DIR/test_invocation_body.json")
 echo "Passing invocation body $INVOCATION_BODY"
 
-EXPECTED_RESPONSE=$(lambda_function.test_invocation_response)
+EXPECTED_RESPONSE=5
+
 echo "Expecting response $EXPECTED_RESPONSE, waiting..."
 
 RESPONSE=$(curl -XPOST \

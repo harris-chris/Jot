@@ -17,6 +17,7 @@ function make_test_build()
 
   run(`mkdir -p $test_build_dir/scripts`)
   run(`cp ../scripts/. $test_build_dir/scripts -r`)
+
 end
 
 @testset "Create a random lambda" begin
@@ -29,6 +30,7 @@ end
   parsed_args = Jot.parse_commandline(["buildimage"])
   command = pop!(parsed_args, "%COMMAND%")
   Jot.main(command, parsed_args, config, pwd())
-  @test run(`scripts/run_local_test.sh`) == 0
+  @info pwd()
+  @test run(`bash scripts/run_local_test.sh`).exitcode == 0
 end
 

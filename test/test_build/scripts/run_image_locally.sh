@@ -1,4 +1,4 @@
 #!/bin/bash
 docker run \
   -p 9000:8080 \
-  -it $(image.image_uri_string)
+  -it 513118378795.dkr.ecr.ap-northeast-1.amazonaws.com/glero5hpyq-julia-lambda:latest

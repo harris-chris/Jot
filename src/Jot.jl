@@ -269,14 +269,12 @@ function interpolate_string_with_config(
 end
 
 function get_test_invocation_body(function_fpath::String)::String
-  @info pwd()
-  @show joinpath(pwd(), "function/function.jl")
-  include(function_fpath)
+  include(joinpath(pwd(), function_fpath))
   JSON.json(TEST_INVOCATION_BODY, 4)
 end
 
 function get_test_invocation_response(function_fpath::String)::String
-  include(function_fpath)
+  include(joinpath(pwd(), function_fpath))
   JSON.json(TEST_INVOCATION_RESPONSE, 4)
 end
 
@@ -290,7 +288,9 @@ function copy_template(from::String, to::String)
 end
 
 function copy_function(function_path::String, image_path::String, config::Config)
-  runtime = joinpath(image_path, config.image.runtime_path)
+  @show image_path
+  runtime = "$image_path$(config.image.runtime_path)" # Do not use joinpath for this
+  @show runtime
   run(`cp $function_path/. $runtime -r`)
 end
 
@@ -445,11 +445,15 @@ function create_dockerfile_build_script_file(contents::String, fpath::String)
   end
 end
 
-function give_necessary_permissions(image_dir::String, config::Config)
+function give_image_permissions(image_dir::String, config::Config)
   runtime = config.image.runtime_path
   depot = config.image.julia_depot_path
   run(`chmod +x -R $image_dir$runtime`)
   run(`chmod +x -R $image_dir$depot`)
+end
+
+function give_scripts_permissions(scripts_dir::String)
+  run(`chmod +x -R $scripts_dir`)
 end
 
 function main(args::String)
@@ -498,7 +502,8 @@ function main(
     interpolate_scripts_inplace(builtins.scripts_path, config)
     println("./scripts built")
     # Give file permissions
-    give_necessary_permissions(builtins.image_path, config)
+    give_image_permissions(builtins.image_path, config)
+    give_scripts_permissions(builtins.scripts_path)
     println("./image built")
 
     copy_function(builtins.function_path, builtins.image_path, config)

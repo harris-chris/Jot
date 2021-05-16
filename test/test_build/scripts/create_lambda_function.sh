@@ -8,16 +8,16 @@ bash $THIS_DIR/delete_lambda_function.sh
 
 # Create a function based on the ECR image 
 read RESULT < <(aws lambda create-function \
-  --function-name=$(lambda_function.name) \
-  --code ImageUri=$(image.image_uri_string) \
-  --role $(aws.role_arn_string) \
+  --function-name=glero5hpyq-julia-function \
+  --code ImageUri=513118378795.dkr.ecr.ap-northeast-1.amazonaws.com/glero5hpyq-julia-lambda:latest \
+  --role arn:aws:iam::513118378795:role/glero5hpyq-LambdaExecutionRole \
   --package-type Image \
-  --timeout=$(lambda_function.timeout) \
-  --memory-size=$(lambda_function.memory_size))
+  --timeout=30 \
+  --memory-size=1000)
 
 if [ $? -eq 0 ];
 then
-  echo "Successfully created function $(lambda_function.name)"
+  echo "Successfully created function glero5hpyq-julia-function"
 else
   echo $RESULT
 fi
