@@ -51,4 +51,5 @@ function react_to_invocation(inv::Invocation)::Union{InvocationResponse, Invocat
 end
 
 TEST_INVOCATION_BODY = Dict("a" => 2, "b" => 3, "operation" => "+")
+TEST_INVOCATION_RESPONSE = 5
 

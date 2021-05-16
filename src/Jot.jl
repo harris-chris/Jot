@@ -248,6 +248,8 @@ function interpolate_string_with_config(
     raw"$(lambda_function.memory_size)" => config.lambda_function.memory_size,
     raw"$(lambda_function.test_invocation_body)" => get_test_invocation_body(
        joinpath(builtins.function_path, "function.jl")),
+    raw"$(lambda_function.test_invocation_response)" => get_test_invocation_response(
+       joinpath(builtins.function_path, "function.jl")),
   )
   aws_matches = map(x -> x.match, eachmatch(r"\$\(aws.[a-z\_]+\)", str))
   image_matches = map(x -> x.match, eachmatch(r"\$\(image.[a-z\_]+\)", str))
@@ -269,6 +271,11 @@ end
 function get_test_invocation_body(function_fpath::String)::String
   include(function_fpath)
   JSON.json(TEST_INVOCATION_BODY, 4)
+end
+
+function get_test_invocation_response(function_fpath::String)::String
+  include(function_fpath)
+  JSON.json(TEST_INVOCATION_RESPONSE, 4)
 end
 
 function copy_template()
