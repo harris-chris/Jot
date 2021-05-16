@@ -40,14 +40,14 @@ const builtins = Builtins(
 )
 
 # CODE
-function parse_commandline(args) 
+function parse_commandline(args::Vector{String}) 
   s = ArgParseSettings(
     "A utility to create Julia docker containers for use in AWS Lambda",
     version="1.0.0",
     autofix_names=true,
   )
 
-  @add_arg_table s begin
+  @add_arg_table! s begin
     "--config-file", "-c"
       help = "Path to configuration file to use for build"
       default = "$(builtins.default_config_path)"
@@ -167,27 +167,27 @@ function create_config(
   )
 end
 
-function get_default_config(prefix::String="")::Config
+function get_default_config(prefix::String="", overrides=Dict{String, Any}())::Config
   prefix = prefix == "" ? "" : prefix * "-" 
   Config(
     aws = AWSConfig(
-      account_id = "123456789012",
-      region = "ap-northeast-1",
-      role = prefix * "LambdaExecutionRole",
+      account_id = get(overrides, "aws.account_id", "123456789012"),
+      region = get(overrides, "aws.region", "ap-northeast-1"),
+      role = prefix * get(overrides, "aws.role", "LambdaExecutionRole"),
     ),
     image = ImageConfig(
-      name = prefix * "julia-lambda",
-      tag = "latest",
-      base = "1.6.0",
-      dependencies = [],
-      runtime_path = "/var/runtime",
-      julia_depot_path = "/var/julia",
-      julia_cpu_target = "x86-64",
+      name = prefix * get(overrides, "image.name", "julia-lambda"),
+      tag = get(overrides, "image.tag", "latest"),
+      base = get(overrides, "image.base", "1.6.0"),
+      dependencies = get(overrides, "image.dependencies", []),
+      runtime_path = get(overrides, "image.runtime_path", "/var/runtime"),
+      julia_depot_path = get(overrides, "image.julia_depot_path", "/var/julia"),
+      julia_cpu_target = get(overrides, "image.julia_cpu_target", "x86-64"),
     ),
     lambda_function = LambdaFunctionConfig(
-      name = prefix * "julia-function",
-      timeout = 30,
-      memory_size = 1000,
+      name = prefix * get(overrides, "lambda_function.name", "julia-function"),
+      timeout = get(overrides, "lambda_function.timeout", 30),
+      memory_size = get(overrides, "memory_size", 1000),
     )
   )
 end
@@ -397,20 +397,23 @@ function get_dependencies_json(config::Config)::String
   json(all_deps)
 end
 
-function build_standard_dockerfile(config::Config, package::Bool)
-  contents = foldl(
+function get_dockerfile_contents(config::Config, package::Bool)::String
+  foldl(
     *, [
     dockerfile_add_julia_image(config),
     dockerfile_add_utilities(),
     dockerfile_runtime_files(config, package),
     dockerfile_add_permissions(config),
   ]; init = "")
-  open("$(builtins.image_path)/Dockerfile", "w") do dockerfile
+end
+
+function create_dockerfile_file(contents::String, fpath::String)
+  open(fpath, "w") do dockerfile
     write(dockerfile, contents)
   end
 end
 
-function build_dockerfile_script(config::Config, no_cache::Bool)
+function get_dockerfile_build_script(config::Config, no_cache::Bool)::String
   contents = """
   #!/bin/bash
   DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -419,7 +422,10 @@ function build_dockerfile_script(config::Config, no_cache::Bool)
     --tag $(get_image_uri_string(config)) \\
     \$DIR/.
   """
-  open("$(builtins.image_path)/build_image.sh", "w") do build_script
+end
+
+function create_dockerfile_build_script_file(contents::String, fpath::String)
+  open(fpath, "w") do build_script
     write(build_script, contents)
   end
 end
@@ -479,8 +485,13 @@ function main(command::String, parsed_args::Dict{String, Any}, config::Union{Not
 
     copy_function(config)
 
-    build_standard_dockerfile(config, parsed_args["packaged"])
-    build_dockerfile_script(config, parsed_args["no_cache"])
+    dockerfile_string = get_dockerfile_contents(config, parsed_args["packaged"])
+    create_dockerfile_file(dockerfile_string, "$(builtins.image_path)/Dockerfile")
+
+    dockerfile_build_script_string = get_dockerfile_build_script(config, parsed_args["no_cache"])
+    create_dockerfile_build_script_file(
+      dockerfile_build_script_string, "$(builtins.image_path)/build_image.sh"
+    )
     println("Dockerfile created")
   end
   if command == "buildimage"
