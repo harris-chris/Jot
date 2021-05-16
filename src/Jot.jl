@@ -18,6 +18,7 @@ end
   image_path::String
   function_path::String
   template_path::String
+  template_scripts_path::String
   source_files_path::String
   special_folder_names::Array{String}
   default_config_path::String
@@ -30,6 +31,7 @@ const builtins = Builtins(
   image_path = "./image",
   function_path = "./function",
   template_path = "./template",
+  template_scripts_path = "./template/scripts",
   source_files_path = "./template/image",
   special_folder_names = ["_runtime", "_depot"],
   default_config_path = "./config.json",
@@ -302,7 +304,14 @@ function replace_special_directories(path::String, config::Config)
   foreach(special -> run(`rm -r $special`), to_delete)
 end
 
-function interpolate_scripts(path::String, config::Config)
+struct InterpolatedScript
+  path::String
+  filename::String
+  script::String
+end
+
+function get_interpolated_scripts(path::String, config::Config)::Vector{InterpolatedScript}
+  interpolated_scripts = Vector{InterpolatedScript}()
   for (root, dirs, files) in walkdir(path)
     for file in files
       fname = joinpath(root, file)
@@ -323,10 +332,22 @@ function interpolate_scripts(path::String, config::Config)
         end
       end
       if !isnothing(interpolated) 
-        open(fname, "w") do f
-          write(f, interpolated)
-        end
+        is = InterpolatedScript(root, file, interpolated)
+        push!(interpolated_scripts, is)
+        # open(fname, "w") do f
+          # write(f, interpolated)
+        # end
       end
+    end
+  end
+  interpolated_scripts
+end
+
+function write_interpolated_scripts(scripts::Vector{InterpolatedScript}, path::Union{Nothing, String} = nothing)
+  for is in scripts
+    fpath = isnothing(path) ? joinpath(is.path, is.filename) : joinpath(path, is.filename)
+    open(fpath, "w") do f
+      write(f, is.script)
     end
   end
 end
@@ -353,7 +374,6 @@ function dockerfile_runtime_files(config::Config, package::Bool)::String
   RUN mkdir -p $(config.image.runtime_path)
   WORKDIR $(config.image.runtime_path)
 
-  # COPY $(config.file_path) ./
   COPY $(config.image.runtime_path)/. ./
   RUN julia build_runtime.jl $(config.image.runtime_path) $package $(get_dependencies_json(config)) $(config.image.julia_cpu_target)
 
@@ -422,20 +442,38 @@ end
 
 function main(args::Vector{String})
   parsed_args = parse_commandline(args)
-  config_fpath = parsed_args["config_file"]
-  command = parsed_args["%COMMAND%"]
+  command = pop!(parsed_args, "%COMMAND%")
+  config_fpath = pop!(parsed_args, "config_file")
+  config = try 
+    config_json = read_config_file(config_fpath)
+    create_config(config_json, config_fpath)
+  catch e
+    if isa(e, SystemError)
+      @info "Unable to find configuration file $(config_fpath)"
+      nothing
+    else
+      throw(e)
+    end
+  end
+
+  main(command, parsed_args, config)
+end
+
+function main(command::String, parsed_args::Dict{String, Any}, config::Union{Nothing, Config})
   if command == "getdefaultconfig"
     generate_default_config_file()
   elseif command in ["buildfilesonly", "buildimage"]
-    config_json = read_config_file(config_fpath)
-    config = create_config(config_json, config_fpath)
-    println("Configuration parsed")
-
+    isnothing(config) && error("Configuration data not found; please check if config.json exists")
     copy_template()
     replace_special_directories(builtins.image_path, config)
-    interpolate_scripts(builtins.image_path, config)
-    interpolate_scripts(builtins.scripts_path, config)
+    # Interpolate image path scripts
+    image_path_scripts = get_interpolated_scripts(builtins.image_path, config)
+    write_interpolated_scripts(image_path_scripts)
+    # Interpolate scripts path scripts
+    scripts_path_scripts = get_interpolated_scripts(builtins.scripts_path, config)
+    write_interpolated_scripts(scripts_path_scripts)
     println("./scripts built")
+    # Give file permissions
     give_necessary_permissions(config)
     println("./image built")
 
@@ -445,7 +483,7 @@ function main(args::Vector{String})
     build_dockerfile_script(config, parsed_args["no_cache"])
     println("Dockerfile created")
   end
-  if parsed_args["%COMMAND%"] == "buildimage"
+  if command == "buildimage"
     run(`bash $(builtins.image_path)/build_image.sh`)
   end
 end
