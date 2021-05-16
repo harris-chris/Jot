@@ -11,12 +11,12 @@ int main( int argc, char *argv[] )
     strcat(argstring, " ");
     strcat(argstring, argv[i]);
   }
-  /*printf("ARGSTRING %s\n", argstring);*/
   char script[] = "\
   #/bin/bash\n\
-  julia ./src/Jot.jl%s\
+  julia --project -e \"using Jot; Jot.main(\\\"%s\\\")\" \
   ";
   char command[2048];
   sprintf(command, script, argstring);
+  /*printf("COMMAND %s\n", command);*/
   return system(command);
 }

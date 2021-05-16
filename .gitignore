@@ -3,3 +3,5 @@
 shell.nix
 vscjl*
 push_to_github.fish
+default_config.json
+ignore_config.json

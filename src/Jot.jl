@@ -1,6 +1,6 @@
-import Pkg
-Pkg.activate(pwd())
-Pkg.instantiate()
+# import Pkg
+# Pkg.activate(pwd())
+# Pkg.instantiate()
 
 module Jot
 
@@ -412,7 +412,15 @@ function give_necessary_permissions(config::Config)
   run(`chmod +x -R $img$depot`)
 end
 
-function main(args)
+function main(args::String)
+  main(convert(Vector{String}, split(strip(args), " ")))
+end
+
+function main()
+  main(Vector{String}())
+end
+
+function main(args::Vector{String})
   parsed_args = parse_commandline(args)
   config_fpath = parsed_args["config_file"]
   command = parsed_args["%COMMAND%"]
@@ -444,5 +452,5 @@ end
 
 end # module
 
-Jot.main(ARGS)
+# Jot.main(ARGS)
 
