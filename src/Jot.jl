@@ -302,8 +302,8 @@ end
 
 function dockerfile_add_permissions(config::Config)::String
   """
-  RUN chmod +x -R $(config.image.runtime_path)
-  RUN chmod +x -R $(config.image.julia_depot_path)
+  RUN chmod +rwx -R $(config.image.runtime_path)
+  RUN chmod +rwx -R $(config.image.julia_depot_path)
   """
 end
 
@@ -345,8 +345,8 @@ function give_necessary_permissions(config::Config)
   img = builtins.image_path
   runtime = config.image.runtime_path
   depot = config.image.julia_depot_path
-  run(`chmod +x -R $img$runtime`)
-  run(`chmod +x -R $img$depot`)
+  run(`chmod +rwx -R $img$runtime`)
+  run(`chmod +rwx -R $img$depot`)
 end
 
 function main(args)
