@@ -32,7 +32,7 @@ function react_to_invocation(inv::Invocation)::Union{InvocationResponse, Invocat
   println("Reacting to invocation")
   try
     num_a = inv.body["a"]
-    num_b = inv.body["b"]
+    num_b = inv.body["c"]
     op = inv.body["operation"]
     response = nothing
     if op == "+"
