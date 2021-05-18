@@ -290,9 +290,13 @@ function dockerfile_runtime_files(config::Config, package::Bool)::String
 
   # COPY $(config.file_path) ./
   COPY $(config.image.runtime_path)/. ./
+
+  ENV FUNC_PATH="$(joinpath(config.image.runtime_path, "function.jl"))"
+  # RUN FUNC_PATH="$(joinpath(pwd(), builtins.function_path))"
+
   RUN julia build_runtime.jl $(config.image.runtime_path) $package $(get_dependencies_json(config)) $(config.image.julia_cpu_target)
 
-  RUN find $(config.image.julia_depot_path)/packages -name "function.jl" -exec cp ./function.jl {} \\;
+  # RUN find $(config.image.julia_depot_path)/packages -name "function.jl" -exec cp ./function.jl {} \\;
 
   ENV PATH="$(config.image.runtime_path):\${PATH}"
 
@@ -302,6 +306,8 @@ end
 
 function dockerfile_add_permissions(config::Config)::String
   """
+  # RUN chmod 644 \$(find $(config.image.runtime_path) -type f)
+  # RUN chmod 644 \$(find $(config.image.julia_depot_path) -type f)
   RUN chmod +rwx -R $(config.image.runtime_path)
   RUN chmod +rwx -R $(config.image.julia_depot_path)
   """
