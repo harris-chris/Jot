@@ -1,3 +1,6 @@
+# Deprecation Notice
+#### I recommend now using [Jot.jl](https://github.com/harris-chris/Jot.jl), which does roughly the same thing as this but operates as a Julia package, has more functionality, and is better documented.
+
 ## Jot is for creating AWS Lambda images in Julia
 AWS does not provide native support for Julia, so functions must be put into containers which implement AWS's [Lambda API](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html), and uploaded to AWS ECR. This repo aims to reduce this to a simple, customizable and transparent process, which results in a low-latency Lambda function:
 1. [Enter your configuration](#configjson) for your AWS account and the function to be created in the `config.json` file
